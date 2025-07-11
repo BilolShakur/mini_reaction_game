@@ -19,6 +19,7 @@ class _GameUiState extends State<GameUi> {
   Timer? timer;
   double reactionTime = 0.0;
   List<double> reactionTimes = [];
+  bool isPaused = false;
 
   final GameLogic logic = GameLogic();
   final Random random = Random();
@@ -40,13 +41,32 @@ class _GameUiState extends State<GameUi> {
     });
   }
 
+  void pauseGame() {
+    if (!isPaused) {
+      // Pause everything
+      stopwatch.stop();
+      timer?.cancel();
+      setState(() {
+        isPaused = true;
+      });
+    } else {
+      stopwatch.start();
+      timer = Timer.periodic(const Duration(milliseconds: 10), (_) {
+        setState(() {
+          reactionTime = stopwatch.elapsedMicroseconds / 1000.0;
+        });
+      });
+      setState(() {
+        isPaused = false;
+      });
+    }
+  }
+
   Future<void> _startNewRound() async {
     hide = true;
     setState(() {});
 
-    await Future.delayed(
-      Duration(milliseconds: 500 + random.nextInt(1000)),
-    ); // 0.5s–1.5s delay
+    await Future.delayed(Duration(milliseconds: 500 + random.nextInt(2000)));
 
     position = logic.changeOffset(
       MediaQuery.of(context).size.height,
@@ -96,7 +116,34 @@ class _GameUiState extends State<GameUi> {
             Text("Current: ${reactionTime.toStringAsFixed(0)} ms"),
           ],
         ),
-        leadingWidth: 200,
+        leadingWidth: 100,
+        leading: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(width: 8),
+            IconButton.filledTonal(
+              color: Colors.white,
+              onPressed: () {
+                reactionTimes.clear();
+                reactionTime = 0.0;
+                setState(() {});
+                _startNewRound();
+              },
+              icon: Icon(Icons.restart_alt, color: Colors.red, size: 40),
+            ),
+            SizedBox(height: 15),
+            IconButton.filledTonal(
+              color: Colors.white,
+              onPressed: () {
+                pauseGame();
+              },
+              icon: isPaused
+                  ? Icon(Icons.play_arrow, color: Colors.red, size: 40)
+                  : Icon(Icons.pause, color: Colors.red, size: 40),
+            ),
+          ],
+        ),
+
         // leading: const Padding(
         //   padding: EdgeInsets.only(top: 25, left: 10),
         //   child: Text(
